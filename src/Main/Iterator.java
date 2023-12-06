@@ -1,52 +1,31 @@
 package Main;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
-public class Trab2 {
-    private final double length_x; //Lx : entre 1 e 20 [metros]
+public abstract class Iterator {
+    protected final double length_x; //Lx : entre 1 e 20 [metros]
     private final double length_xf; //Uma fração de Lx
-    private final double u; //Coeficiente de advecção : entre 0.1 a 2.0 [metros/segundo]
-    private final double a; //Coeficiente de difusão : entre 0.001 a 0.1 [metros²/segundo]
+    protected final double u; //Coeficiente de advecção : entre 0.1 a 2.0 [metros/segundo]
+    protected final double a; //Coeficiente de difusão : entre 0.001 a 0.1 [metros²/segundo]
+    protected final double C; //Número de Courant para este problema
     private final double t_max; // tempo máximo : entre 60 e 600 [segundos]
     private final double t_int; // tempo intermediário : % t_max
-    private final double deltaX; //Comprimento da malha espacial
-    private final double deltaT; //Intervalo da malha temporal
-    private final double Ca; //Concentração inicial A
-    private final double Cb; //Concentração inicial B
-    private final double Cc; //Concentração inicial C
-    private final Method method; //O método que vai ser usado por este objeto. Em Java, um "Method" é basicamente uma referência a uma função.
-    private double[] Qs; //Valores no interior do domínio
+    protected final double deltaX; //Comprimento da malha espacial
+    protected final double deltaT; //Intervalo da malha temporal
+    protected final double Ca; //Concentração inicial A
+    protected final double Cb; //Concentração inicial B
+    protected final double Cc; //Concentração inicial C
+    protected double[] Qs; //Valores no interior do domínio
     private double t_draw;
     private double dt_draw;
     private GChart chart;
 
-    private double Algoritmo_Trabalho_1( int Xi ) {
-        return Qs[Xi] - (deltaT/deltaX)*(u*(Qs[Xi] - Qs[Xi-1]) - a*((Qs[Xi+1] - 2*Qs[Xi] + Qs[Xi-1])/deltaX));
-    }
+    protected abstract double method( int Xi );
+    protected abstract String getName();
+    protected abstract double get_deltaT();
 
-    private double FTBS( int Xi ) {
-        return Qs[Xi] - u*(deltaT/deltaX)*(Qs[Xi] - Qs[Xi-1]);
-    }
-
-    private double Lax_Friedrichs( int Xi ) {
-        return (Qs[Xi+1] + Qs[Xi-1])/2 - u*(deltaT/deltaX)*(Qs[Xi+1] - Qs[Xi-1]);
-    }
-
-    private double Lax_Wendroff( int Xi ) {
-        return Qs[Xi] - u*(deltaT/deltaX)*(Qs[Xi+1] - Qs[Xi-1]) + ((u*u*deltaT*deltaT) / (2*deltaX*deltaX))*(Qs[Xi+1] - 2*Qs[Xi] + Qs[Xi-1]);
-    }
-
-    private double Beam_Warming( int Xi ) {
-        int x_2 = Math.max(0, Xi-2);
-        return Qs[Xi] - ((u*deltaT) / (2*deltaX))*(3*Qs[Xi] - 4*Qs[Xi-1] + Qs[x_2]) + ((u*u*deltaT*deltaT) / (2*deltaX*deltaX))*(Qs[Xi] - 2*Qs[Xi-1] + Qs[x_2]);
-    }
-
-
-
-    Trab2(double length_x, double length_xf, double u, double a, double t_max, double t_int, double Ca, double Cb, double Cc, int s_partition, int draw, Method method) { //Inicializa todos os valores para o tempo 0.
+    Iterator(double length_x, double length_xf, double u, double a, double t_max, double t_int, double Ca, double Cb, double Cc, int s_partition, int draw) { //Inicializa todos os valores para o tempo 0.
         this.length_x = length_x;
         this.length_xf = length_xf;
         this.u = u;
@@ -54,15 +33,17 @@ public class Trab2 {
         this.t_max = t_max;
         this.t_int = t_int;
         this.deltaX = length_x/s_partition;
-        this.deltaT = 0.8*(1/((u/deltaX) + (2*a/(deltaX*deltaX))));
+        //this.deltaT = 0.8*(1/((u/deltaX) + (2*a/(deltaX*deltaX))));
         this.Ca = Ca;
         this.Cb = Cb;
         this.Cc = Cc;
-        this.method = method;
+
+        deltaT = get_deltaT();
+        C = u*(deltaT/deltaX);
 
         dt_draw = t_max / draw; //Intervalo para desenhar no gráfico
         t_draw  = dt_draw;
-        chart = new GChart(method.getName(), draw + 1);
+        chart = new GChart(getName(), draw + 1);
 
         Qs = new double[s_partition+1];
 
@@ -72,7 +53,7 @@ public class Trab2 {
         for(int j = 1; j <= draw; j++) chart.setColor(j, Color.BLUE);
     }
 
-    public void run() throws InvocationTargetException, IllegalAccessException { //Roda quantas iterações forem necessárias até que T alcançe t_max.
+    public void run() { //Roda quantas iterações forem necessárias até que T alcançe t_max.
         double t = 0; //Nosso tempo inicial.
         int c = 0; //Qual curva está sendo desenhada.
         double[] Qss = new double[Qs.length];
@@ -86,9 +67,9 @@ public class Trab2 {
         Qss[0] = Ca; //Precisamos inicializar o contorno em nosso array auxiliar também.
 
         for(t = deltaT; t <= t_int; t += deltaT){ //Iterar em 0 < t <= t_int.
-            //System.out.println("T = "+t);
             for(int i = 1; i < length-1; i++) { //Iterar todos os volumes da malha (Exceto contornos!)
-                Qss[i] = (double) method.invoke(this, i);
+                Qss[i] = method(i);
+                if(Double.isNaN(Qss[i])) System.out.println(" i = " + i);
             }
             double[] tmp = Qss;
             Qss = Qs;
@@ -106,9 +87,8 @@ public class Trab2 {
         Qss[0] = Cc; //Mesma coisa com nosso array auxiliar.
 
         for(t = t_int; t <= t_max; t += deltaT) { //Iterar em t_int < t <= t_max,
-            //System.out.println("T = "+t);
             for(int i = 1; i < length-1; i++) { //Iterar todos os volumes da malha (Exceto contornos!)
-                Qss[i] = (double) method.invoke(this, i);
+                Qss[i] = method(i);
             }
             double[] tmp = Qss;
             Qss = Qs;
@@ -128,7 +108,7 @@ public class Trab2 {
         for(int i = 1; i <= c ; i++){
             for(int j = 1; j <= c ; j++) chart.setVisible(j, false);
             chart.setVisible(i, true);
-            try{ chart.savePNG("/home/samuel/ProjetosProg/export/"+method.getName()+" "+i+".png", 900, 600); }
+            try{ chart.savePNG("/home/gabriel/Development/export/"+getName()+" "+i+".png", 900, 600); }
             catch(IOException e) { e.printStackTrace(); }
         }
     }
