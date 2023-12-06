@@ -16,64 +16,56 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 
-public class GChart extends JFrame {
-    private XYSeriesCollection dataset;
-    private XYSeries series[];
-    private ChartPanel chartPanel;
-    private JFreeChart chart;
+public class GChart extends ChartPanel {
+    private final XYSeries[] series;
+    XYPlot plot;
 
     public void setLabel(int serie, String label) {
         series[serie].setKey(label);
     }
 
-    public void setVisible(int serie, boolean visible) { chart.getXYPlot().getRenderer().setSeriesVisible(serie, visible); }
+    public void setVisible(int serie, boolean visible) { plot.getRenderer().setSeriesVisible(serie, visible); }
 
-    public void setColor(int serie, Paint paint) { chart.getXYPlot().getRenderer().setSeriesPaint(serie, paint); }
+    public void setColor(int serie, Paint paint) { plot.getRenderer().setSeriesPaint(serie, paint); }
+    public void savePNG(String path, int width, int height) throws IOException {ChartUtilities.saveChartAsPNG(new File(path), getChart(), width, height);}
 
-    public void savePNG(String path, int width, int height) throws IOException { ChartUtilities.saveChartAsPNG(new File(path), chart, width, height); }
+    public void addData(int serie, double[] x, double[] y) { for(int i=0; i<x.length; i++) series[serie].add(x[i], y[i]); }
 
-    public void setData(int serie, Number[] x, Number[] y) { for(int i=0; i<x.length; i++) series[serie].add(x[i], y[i]); }
-
-    public void addData(int serie, Number x, Number y) { series[serie].add(x, y); }
+    public void addData(int serie, double x, double y) { series[serie].add(x, y); }
+    public  void clear(int serie) { series[serie].clear(); }
 
 
     public GChart(String title, int series) {
-        super(title);
-        setMinimumSize(new Dimension(900, 600));
-        setLocationRelativeTo(null);
-        dataset = new XYSeriesCollection();
+        super(ChartFactory.createXYLineChart(title, "", "", new XYSeriesCollection(), PlotOrientation.VERTICAL, true, true, false));
+        plot = (XYPlot) getChart().getPlot();
+        XYSeriesCollection dataset = (XYSeriesCollection) plot.getDataset();
         this.series = new XYSeries[series];
         for(int i=0; i<series; i++) {
             this.series[i] = new XYSeries(""+i);
             dataset.addSeries(this.series[i]);
         }
-        chart = ChartFactory.createXYLineChart(title, "", "", dataset, PlotOrientation.VERTICAL, true, true, false);
-        chartPanel = new ChartPanel(chart) {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                int mods = e.getModifiers();
-                int panMask = MouseEvent.BUTTON1_MASK;
-                if (mods == panMask+MouseEvent.SHIFT_MASK) panMask = 255;
-                try {
-                    Field mask = ChartPanel.class.getDeclaredField("panMask");
-                    mask.setAccessible(true);
-                    mask.set(this, panMask);
-                }
-                catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-                super.mousePressed(e);
-            }
-        };
-        setContentPane(chartPanel);
 
-        XYPlot plot = (XYPlot) chart.getPlot();
         plot.setBackgroundPaint(Color.WHITE);
         plot.setRangeZeroBaselineVisible(true);
         plot.setDomainZeroBaselineVisible(true);
         plot.setRangePannable(true);
         plot.setDomainPannable(true);
-        chartPanel.setMouseWheelEnabled(true);
-        chartPanel.setMouseZoomable(true);
+        setMouseWheelEnabled(true);
+        setMouseZoomable(true);
+    }
+    @Override
+    public void mousePressed(MouseEvent e) {
+        int mods = e.getModifiers();
+        int panMask = MouseEvent.BUTTON1_MASK;
+        if (mods == panMask+MouseEvent.SHIFT_MASK) panMask = 255;
+        try {
+            Field mask = ChartPanel.class.getDeclaredField("panMask");
+            mask.setAccessible(true);
+            mask.set(this, panMask);
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        super.mousePressed(e);
     }
 }
