@@ -8,8 +8,7 @@ public class Superbee extends Advection {
     @Override
     protected double fluxLimiter(double slope) {
         if(slope <= 0) return 0;
-        double minj = Math.max(2, slope);
-        return Math.max(Math.min(1, 2*slope), Math.max(2, slope));
+        return Math.max(Math.min(1, 2*slope), Math.min(2, slope));
     }
 
     @Override
