@@ -25,6 +25,8 @@ public abstract class Iterator {
     protected abstract String getName();
     protected abstract double get_deltaT();
 
+    public double[] getQs() { return Qs; }
+
     Iterator(double length_x, double length_xf, double u, double a, double t_max, double t_int, double Ca, double Cb, double Cc, int s_partition, int draw) { //Inicializa todos os valores para o tempo 0.
         this.length_x = length_x;
         this.length_xf = length_xf;
@@ -40,9 +42,11 @@ public abstract class Iterator {
         deltaT = get_deltaT();
         C = u*(deltaT/deltaX);
 
-        dt_draw = t_max / draw; //Intervalo para desenhar no gráfico
-        t_draw  = dt_draw;
-        chart = new GChart(getName(), draw + 1);
+        if(draw > 0) {
+            dt_draw = t_max / draw; //Intervalo para desenhar no gráfico
+            t_draw  = dt_draw;
+            chart = new GChart(getName(), draw + 1);
+        } else t_draw = Double.POSITIVE_INFINITY;
 
         Qs = new double[s_partition+1];
 
@@ -59,9 +63,14 @@ public abstract class Iterator {
         final double dtdx = deltaT/deltaX;
         final int length = Qs.length;
 
-        for(int i = 0; i < length; i++) chart.addData(0, i * deltaX, Qs[i]);
-        chart.setLabel(0, "T = 0.0");
-        c++;
+        Qss[0] = Qs[0];
+        Qss[Qss.length - 1] = Qs[Qs.length - 1];
+
+        if(t_draw < t_max) {
+            for(int i = 0; i < length; i++) chart.addData(0, i * deltaX, Qs[i]);
+            chart.setLabel(0, "T = 0.0");
+            c++;
+        }
 
         Qss[0] = Ca; //Precisamos inicializar o contorno em nosso array auxiliar também.
 
@@ -100,8 +109,10 @@ public abstract class Iterator {
             }
         }
 
-        for(int i = 0; i < length; i++) chart.addData(c, i * deltaX, Qs[i]);
-        chart.setLabel(c, "T = " + t);
+        if(c > 0) {
+            for(int i = 0; i < length; i++) chart.addData(c, i * deltaX, Qs[i]);
+            chart.setLabel(c, "T = " + t);
+        }
 
         for(int i = 1; i <= c ; i++){
             for(int j = 1; j <= c ; j++) chart.setVisible(j, false);
