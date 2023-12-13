@@ -19,7 +19,7 @@ public abstract class Advection extends Iterator {
 
     @Override
     protected double get_deltaT() {
-        return 0.8*(1/((u/deltaX) + (2*a/(deltaX*deltaX))));
+        return 0.8*(1/((u/deltaX*deltaX) + (2*a/(deltaX*deltaX))));
     }
 
     protected abstract double fluxLimiter(double slope);

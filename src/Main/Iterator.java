@@ -33,7 +33,6 @@ public abstract class Iterator {
         this.t_max = t_max;
         this.t_int = t_int;
         this.deltaX = length_x/s_partition;
-        //this.deltaT = 0.8*(1/((u/deltaX) + (2*a/(deltaX*deltaX))));
         this.Ca = Ca;
         this.Cb = Cb;
         this.Cc = Cc;
@@ -69,7 +68,6 @@ public abstract class Iterator {
         for(t = deltaT; t <= t_int; t += deltaT){ //Iterar em 0 < t <= t_int.
             for(int i = 1; i < length-1; i++) { //Iterar todos os volumes da malha (Exceto contornos!)
                 Qss[i] = method(i);
-                if(Double.isNaN(Qss[i])) System.out.println(" i = " + i);
             }
             double[] tmp = Qss;
             Qss = Qs;

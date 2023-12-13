@@ -6,6 +6,11 @@ public class FTBS extends Advection {
     }
 
     @Override
+    protected double method(int Xi) {
+        return Qs[Xi] - C*(Qs[Xi] - Qs[Xi-1]);
+    }
+
+    @Override
     protected double fluxLimiter(double slope) {
         return 0;
     } //FTBS não limita fluxo.
